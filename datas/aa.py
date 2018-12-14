@@ -1,0 +1,36 @@
+{
+    "CommentsCount":[
+        {
+            "SkuId":7629588,
+            "ProductId":7629588,
+            "ShowCount":4600,
+            "ShowCountStr":"4600+",
+            "CommentCountStr":"6.2Íò+",
+            "CommentCount":62000,
+            "AverageScore":5,
+            "DefaultGoodCountStr":"4.6Íò+",
+            "DefaultGoodCount":46000,
+            "GoodCountStr":"6.1Íò+",
+            "GoodCount":61000,
+            "AfterCount":400,
+            "OneYear":0,
+            "AfterCountStr":"400+",
+            "VideoCount":300,
+            "VideoCountStr":"300+",
+            "GoodRate":0.98,
+            "GoodRateShow":98,
+            "GoodRateStyle":147,
+            "GeneralCountStr":"200+",
+            "GeneralCount":200,
+            "GeneralRate":0.003,
+            "GeneralRateShow":0,
+            "GeneralRateStyle":0,
+            "PoorCountStr":"400+",
+            "PoorCount":400,
+            "SensitiveBook":0,
+            "PoorRate":0.017,
+            "PoorRateShow":2,
+            "PoorRateStyle":3
+        }
+    ]
+}
