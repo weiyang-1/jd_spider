@@ -10,9 +10,10 @@ class Mongo_db():
         self.conn = MongoClient(host="127.0.0.1", port=27017)    #connect to mongodb
         self.db = self.conn.maimai  # 使用脉脉数据库
         self.collection = self.db.jobs
-
+        self.status = True  # 默认查询
     def search(self, query=None, type=1, count=10):
         """查询的结果是dict生成器"""
+
 
         if type==1:
             # 只查找一个
@@ -20,14 +21,13 @@ class Mongo_db():
             if not doc:
                 return None
             logger.info(f"search success！")
-            yield doc
+            return doc
         else:
             array = self.collection.find(query).limit(count)
             if not array:
                 return None
             logger.info(f"search success！")
-            for doc in array:
-                yield doc
+            return array
 
 
     def insert(self, text=dict):
@@ -43,14 +43,14 @@ class Mongo_db():
         """更新插入的数据以及选择更新的次数"""
         if not multi:
             try:
-                self.collection.update(query,{"$set":new_text})
+                self.collection.update(query,{"$set":new_text}, upsert=True)
                 logger.info(f"upload success！")
             except Exception as e:
                 logger.error(e)
                 logger.error("upload failed")
         else:
             try:
-                self.collection.update(query, {"$set": new_text}, multi=True)
+                self.collection.update(query, {"$set": new_text}, upsert=True, multi=True)
                 logger.info(f"upload success！")
             except Exception as e:
                 logger.error(e)

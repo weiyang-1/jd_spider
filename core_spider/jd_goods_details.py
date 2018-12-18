@@ -5,12 +5,14 @@ from lxml import etree
 import json
 from tools.mongo_tools import Mongo_db
 import time
+import datetime
+from configs.config import logger
 
 
 """京东价格接口：https://p.3.cn/prices/mgets?skuIds=J_5225346,J_&type=1
    京东评论接口：http://club.jd.com/productpage/p-1397092632-s-0-t-3-p-0.html
 """
-
+DATE = datetime.datetime.now().strftime('%Y-%m-%d')
 SERVER_JUN_URL = "http://sc.ftqq.com/SCU37154T6493d663e2f8d5bccb44ee60986abb0c5c08f47d89024.send"
 def send_2_me(text, desp):
     r = requests.post(SERVER_JUN_URL, data={'text': text, 'desp': desp})
@@ -27,6 +29,11 @@ class JD_Spider():
         self.comments_info = {}
         self.mongodb = Mongo_db()
         self.sku_infos["comment_info"] = self.comments_info
+        # 设置代理ip
+        self.proxy = {
+            "http": 'http://lum-customer-hl_b9fea07e-zone-zone8-dns-remote:8lvtlx73qqnu@zproxy.luminati-china.io:22225',
+            "https": 'http://lum-customer-hl_b9fea07e-zone-zone8-dns-remote:8lvtlx73qqnu@zproxy.luminati-china.io:22225'
+        }
 
     def get_goods_name(self):
         headers = {
@@ -52,7 +59,7 @@ class JD_Spider():
     def get_price(self):
 
         headers = {
-            'authority': 'p.3.cn',
+            'Host': 'p.3.cn',
             'cache-control': 'max-age=0',
             'upgrade-insecure-requests': '1',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3409.2 Safari/537.36',
@@ -65,8 +72,17 @@ class JD_Spider():
             ('skuIds', f'J_{self.sku_id},J_'),
             ('type', '1'),
         )
-
-        response = requests.get('https://p.3.cn/prices/mgets', headers=headers, params=params)
+        response = ""
+        for _ in range(5):
+            try:
+                response = requests.get('https://p.3.cn/prices/mgets', headers=headers, params=params, proxies=self.proxy, timeout=15)
+            except Exception as e:
+                logger.error(e)
+                time.sleep(10)
+                continue
+            if "id" in response.text:
+                break
+        logger.info(response.text)
         res_json = json.loads(response.text)
         try:
             price = res_json[0].get("p", "")
@@ -81,27 +97,7 @@ class JD_Spider():
 
     def get_comments(self):
         """获取评论数"""
-        # https: // club.jd.com / comment / productCommentSummaries.action?referenceIds = 7629588
-        cookies = {
-            '__jdu': '641087548',
-            'shshshfpb': '05b1d1356646c036716a9d081e5a941ab82f8b57093c59abb5b7146b41',
-            'PCSYCityID': '1381',
-            'shshshfpa': '9f92e083-fd26-5ffd-5c7a-73b803f1db6b-1544410462',
-            'ipLoc-djd': '1-72-2799-0',
-            'unpl': 'V2_ZzNtbRAHEBwiWxVcK01bUmICEVoSAxQddAoSUisYXwUyAhVeclRCFXwURldnGV4UZwUZX0tcQhRFCHZXchBYAWcCGllyBBNNIEwHDCRSBUE3XHxcFVUWF3RaTwEoSVoAYwtBDkZUFBYhW0IAKElVVTUFR21yVEMldQl2U34ZXQxhBxdUcmdEJUU4Q1V5GFQHVwIiXHIVF0l3DkBdfRoRAmIDE1REU0YcRQl2Vw%3d%3d',
-            '__jdv': '122270672|baidu-pinzhuan|t_288551095_baidupinzhuan|cpc|0f3d30c8dba7459bb52f2eb5eba8ac7d_0_cab8fbb9ae6f4026aef903e7a021d062|1544693885422',
-            '3AB9D23F7A4B3C9B': 'UDR2LAGT36DXD5KCJPLCFWCQGTDG4UHPX2PYHB3HXCUE2DJV36UC54M6MPGTBIYHG5YBR4EKWQJHRV34GM6E7F7HJI',
-            'jwotest_product': '99',
-            'JSESSIONID': 'F539F3A8E7106CCB56D58D1318E96E83.s1',
-            '_gcl_au': '1.1.1695706138.1544759275',
-            '__jda': '122270672.641087548.1544410460.1544693885.1544759275.4',
-            '__jdc': '122270672',
-            'user-key': '3106e820-a4cd-4e43-8f0a-f4df1e03f89d',
-            'cn': '0',
-            'shshshfp': '7838418ca8fdea4314d72b4a4ca91af9',
-            'shshshsID': '73b2d5ae90a8735786d38514bb0c1322_5_1544761056339',
-            '__jdb': '122270672.5.641087548|4.1544759275',
-        }
+        # https://club.jd.com/comment/productCommentSummaries.action?referenceIds=762958
 
         headers = {
             'Connection': 'keep-alive',
@@ -116,7 +112,8 @@ class JD_Spider():
             ('referenceIds', self.sku_id),
         )
         response = requests.get('https://club.jd.com/comment/productCommentSummaries.action', headers=headers,
-                                params=params, cookies=cookies)
+                                params=params)
+        print(response.text)
         try:
             res_json = json.loads(response.text)["CommentsCount"][0]
         except:
@@ -132,15 +129,15 @@ class JD_Spider():
 
 
     def run(self):
-        name = self.get_goods_name()
-        time.sleep(1)
+        # name = self.get_goods_name()
+        # time.sleep(1)
         p1, p2 = self.get_price()
-        time.sleep(1)
-        self.get_comments()
-        self.sku_infos["name"] = name
+        # time.sleep(1)
+        # self.get_comments()
+        # self.sku_infos["name"] = name
         # 价格设置为列表
-        self.sku_infos["p1"] = p1
-        self.sku_infos["p2"] = p2
+        self.sku_infos[f"p1-{DATE}"] = float(p1) if p1 else 0
+        self.sku_infos[f"p2-{DATE}"] = float(p2) if p2 else 0
         query = {"sku_id": f"{self.sku_id}"}
         self.mongodb.update(query, self.sku_infos)
 
@@ -152,14 +149,15 @@ def debug():
     #     if not sku_id:
     #         continue
     #     print(sku_id)
-    jd = JD_Spider(5225346)
-    jd.get_goods_name()
-    jd.get_comments()
+    jd = JD_Spider(29044581674)
+    # jd.get_goods_name()
+    # jd.get_comments()
     p1, p2 = jd.get_price()
+    print(p1, p2)
     time.sleep(1)
     # 价格设置为列表
-    jd.sku_infos["p1"] = p1
-    jd.sku_infos["p2"] = p2
+    jd.sku_infos[f"p1-{DATE}"] = float(p1) if p1 else 0
+    jd.sku_infos[f"p2-{DATE}"] = float(p2) if p2 else 0
     query = {"sku_id": f"{jd.sku_id}"}
     jd.mongodb.update(query, jd.sku_infos)
 

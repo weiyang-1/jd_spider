@@ -3,6 +3,11 @@
 from core_spider.jd_goods_details import JD_Spider
 from core_spider.jd_list import List_spider
 from tools.mongo_tools import Mongo_db
+from tools.clock import alarm
+from datas.analys import get_deep_price_down
+from configs.config import logger
+
+import time
 
 def run():
 
@@ -24,4 +29,17 @@ def run():
         jd.run()
     print(count)
 
-run()
+
+
+while True:
+    # 设置运行闹钟 每天晚上9点开始运行
+    alarm(17, 39, 0)
+    logger.info(f"it‘s time to run~now is {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
+    # 运行数据更新
+    logger.info(f'start run ~')
+    # run()
+    # time.sleep(10*60)
+    # 等一个小时后运行数据分析
+    get_deep_price_down()
+    # 程序睡到第二天后继续
+    time.sleep(60*60*10)
